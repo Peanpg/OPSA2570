@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, Check, CheckCheck, ChevronDown, ChevronRight, Clock3, Crosshair, ExternalLink, List, LocateFixed, MapPinned, RefreshCw, Search, Wifi, X, Zap, ClipboardList } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, CheckCheck, ChevronDown, ChevronRight, Clock3, Crosshair, ExternalLink, List, ListFilter, LocateFixed, MapPinned, RefreshCw, Search, Users, Wifi, X, Zap, ClipboardList } from "lucide-react";
 import data from "./transformers.json";
 import type { LoadStatus } from "@/lib/status-contract";
 import siteData from "./measurement-sites.json";
 import { isMeasurementSite, meterVoltageStatus } from "@/lib/measurement-site";
+import TeamLocations, { type TeamFix } from "./team-locations";
 
 type Point = (typeof data)[number];
 type View = "map" | "list" | "report" | "schedule";
@@ -34,6 +35,13 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
   const [selectedTimes, setSelectedTimes] = useState<string[]>(() => [...times]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showSiteMap, setShowSiteMap] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [teamDraft, setTeamDraft] = useState("");
+  const [teamDialog, setTeamDialog] = useState(false);
+  const [teamError, setTeamError] = useState("");
+  const [geoFix, setGeoFix] = useState<TeamFix | null>(null);
+  const pendingLocate = useRef(false);
   const [statuses, setStatuses] = useState<Record<string, LoadStatus>>({});
   const [loaded, setLoaded] = useState(false);
   const [syncError, setSyncError] = useState("");
@@ -68,6 +76,9 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
   }), [area, selectedTimes, filter, query, statuses]);
   const selected = visible.find(p => p.pea === selectedId);
   const selectedSite = selected ? measurementSites.find(p => p.transformerPea === selected.pea) : undefined;
+  useEffect(() => {
+    try { const saved = localStorage.getItem("namphong-load-team-name")?.trim(); if (saved && saved.length <= 80 && !/[\u0000-\u001f\u007f]/.test(saved)) setTeamName(saved); } catch {}
+  }, []);
   useEffect(() => {
     if (selectedId && !visible.some(p => p.pea === selectedId)) { setSelectedId(null); setShowSiteMap(false); }
   }, [selectedId, visible]);
@@ -110,7 +121,7 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
     pendingRef.current.add(p.pea); setPending(new Set(pendingRef.current)); epoch.current++;
     try {
       const response = await fetch("/api/status", { method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: p.pea, completed: desired, expectedRevision: current?.revision ?? null }), signal: AbortSignal.timeout(15000) });
+        body: JSON.stringify({ id: p.pea, completed: desired, expectedRevision: current?.revision ?? null, teamName: teamName || null }), signal: AbortSignal.timeout(15000) });
       const result = await response.json() as { status?: LoadStatus; current?: LoadStatus | null; error?: string };
       if (response.status === 409) {
         if (result.current) applyStatus(result.current);
@@ -125,7 +136,7 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
   }
   const choose = useCallback((p: Point) => {
     if (!visible.some(row => row.pea === p.pea)) { setQuery(""); setFilter("all"); }
-    setSelectedId(p.pea); setShowSiteMap(false); setView("map");
+    setSelectedId(p.pea); setShowSiteMap(false); setFiltersOpen(false); setView("map");
     map.current?.flyTo([p.lat, p.long], Math.max(map.current.getZoom(), 16), { duration: 0.5 });
   }, [visible]);
   useEffect(() => {
@@ -181,7 +192,17 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
     return () => clearTimeout(timer);
   }, [view, mapReady]);
   useEffect(() => () => { if (watch.current !== null) navigator.geolocation.clearWatch(watch.current); }, []);
+  function editTeam() { pendingLocate.current = false; setTeamDraft(teamName); setTeamError(""); setTeamDialog(true); }
+  function cancelTeam() {
+    setTeamDialog(false);
+    if (pendingLocate.current && !position) { followRef.current = false; setFollow(false); zoomOnFix.current = false; }
+    pendingLocate.current = false;
+  }
   function locate() {
+    if (!teamName) { pendingLocate.current = true; setTeamDraft(""); setTeamError(""); setTeamDialog(true); return; }
+    startLocation();
+  }
+  function startLocation() {
     if (!navigator.geolocation) { setGeoMessage("อุปกรณ์ไม่รองรับ GPS"); return; }
     if (position) { map.current?.panTo(position); return; }
     zoomOnFix.current = true;
@@ -190,6 +211,7 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
     watch.current = navigator.geolocation.watchPosition(p => {
       const coords: [number, number] = [p.coords.latitude, p.coords.longitude];
       setPosition(coords); setGeoMessage("");
+      setGeoFix({ lat: coords[0], long: coords[1], accuracy: p.coords.accuracy, capturedAt: p.timestamp });
       const L = leaflet.current, m = map.current;
       if (L && m) {
         if (self.current) self.current.setLatLng(coords);
@@ -198,6 +220,7 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
       }
       zoomOnFix.current = false;
     }, error => {
+      setPosition(null); setGeoFix(null); self.current?.remove(); self.current = null;
       setGeoMessage(error.code === 1 ? "ยังไม่ได้อนุญาตตำแหน่ง เปิดสิทธิ์ GPS ในเบราว์เซอร์เพื่อใช้งาน" : "ยังหาพิกัดไม่ได้ กรุณาลองในพื้นที่สัญญาณดี");
       if (watch.current !== null) navigator.geolocation.clearWatch(watch.current);
       watch.current = null; followRef.current = false; setFollow(false);
@@ -220,29 +243,33 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
 
   return <div className="app-shell" data-view={view}>
     <header className="topbar"><div className="brand"><span className="brand-icon"><Zap size={25} /></span><div><h1>วัดโหลดหม้อแปลง</h1><p>อำเภอน้ำพอง · แผนงาน OPSA ปี 70</p></div></div>
-      <div className="header-progress"><span>{known ? totalDone : "—"}<small> / 43</small></span><div>เครื่องที่วัดแล้ว</div></div>
+      <div className="header-actions"><button className="team-trigger" aria-label="ตั้งชื่อทีมผู้สำรวจ" title={teamName || "ตั้งชื่อทีมผู้สำรวจ"} onClick={editTeam}><Users size={17} /><span>{teamName || "ชื่อทีม"}</span></button><div className="header-progress"><span>{known ? totalDone : "—"}<small> / 43</small></span><div>เครื่องที่วัดแล้ว</div></div></div>
     </header>
     <div className="sync-strip"><span className={known ? "sync-ok" : "sync-bad"}><Wifi size={13} />{known ? "เชื่อมต่อส่วนกลางแล้ว · อัปเดตทุก 3 วินาที" : syncError ? "ยังไม่เชื่อมต่อส่วนกลาง" : "กำลังโหลดสถานะส่วนกลาง…"}</span><button aria-label="โหลดสถานะล่าสุด" onClick={() => void refresh()}><RefreshCw size={14} /></button></div>
     {syncError && <div className="connection-warning" role="alert">{syncError} <button onClick={() => void refresh()}>ลองใหม่</button><small>แสดงจุดงานได้ แต่ยังติ๊กบันทึกไม่ได้ และไม่นับสถานะที่ยังไม่ทราบเป็น “ยังไม่วัด”</small></div>}
 
     <main className="workspace">
-      <aside className="sidebar">
+      <aside className="sidebar" data-filters-open={filtersOpen}>
+        <button className="mobile-filter-toggle" aria-expanded={filtersOpen} aria-controls="list-filters" onClick={() => setFiltersOpen(!filtersOpen)}><ListFilter size={17} /><span>{area === "all" ? "ทุกตำบล" : `ต.${area}`} · {selectedTimes.length === times.length ? "ทุกเวลา" : `${selectedTimes.length} ช่วงเวลา`}</span><strong>{filtersOpen ? "พับตัวกรอง" : "ตัวกรอง"}</strong><ChevronDown size={15} /></button>
         <div className="sidebar-heading"><span className="eyebrow">FIELD WORK / น้ำพอง</span><h2>เลือกพื้นที่และเครื่อง</h2><p>เลือกหม้อแปลง แล้วติ๊กวัดแล้วได้ทันที</p></div>
-        <div className="filters"><label>ตำบล<select aria-label="ตำบล" value={area} onChange={e => setArea(e.target.value)}><option value="all">ทุกตำบล · 12 ตำบล</option>{tambons.map(t => <option key={t}>{t}</option>)}</select></label>
+        <div className="filters" id="list-filters"><label>ตำบล<select aria-label="ตำบล" value={area} onChange={e => setArea(e.target.value)}><option value="all">ทุกตำบล · 12 ตำบล</option>{tambons.map(t => <option key={t}>{t}</option>)}</select></label>
           <label className="search-field"><span className="sr-only">ค้นหา Location หรือ PEA</span><Search size={17} /><input aria-label="ค้นหา Location หรือ PEA" placeholder="ค้นหา Location / PEA / ฟีดเดอร์" value={query} onChange={e => setQuery(e.target.value)} /></label>
           <div className="filter-pair"><label>สถานะ<select aria-label="สถานะ" value={filter} onChange={e => setFilter(e.target.value)} disabled={!known}><option value="all">ทุกสถานะ</option><option value="open">ยังไม่วัด</option><option value="done">วัดแล้ว</option></select></label><div className="sidebar-time-filter"><span>เวลา Peak</span><PeakTimeFilter selected={selectedTimes} onChange={setSelectedTimes} area={area} context="รายการ" /></div></div>
+          <button className="mobile-apply-filters" onClick={() => setFiltersOpen(false)}>ดูรายการ {visible.length} เครื่อง</button>
         </div>
         <div className="list-summary"><span>แสดง <strong>{visible.length}</strong> เครื่อง</span><span>เรียงตามตำบล / เวลา Peak</span></div>
         <div className="point-list">{visible.length === 0 && <div className="empty"><Search /><h3>ไม่พบเครื่องที่ค้นหา</h3><p>ลองเปลี่ยนตำบล สถานะ เวลา หรือคำค้น</p><button onClick={() => { setArea("all"); setQuery(""); setFilter("all"); setSelectedTimes([...times]); }}>ล้างตัวกรอง</button></div>}
           {visible.map(p => <article key={p.pea} className={`point-card ${selectedId === p.pea ? "selected" : ""} ${known && statuses[p.pea]?.completed ? "done" : ""}`}>
             <button className="point-title" onClick={() => choose(p)}><span className="point-seq">{p.seq}</span><span><small>ต.{p.tambon}</small><strong>{p.location}</strong><span className="pea-code">PEA {p.pea} · {p.rateKva} kVA</span></span><ChevronRight size={17} /></button>
             <div className="point-card-bottom"><span className="peak-tag"><Clock3 size={13} />{time(p.peakTime)}</span>{checkBox(p)}</div>
+            {known && statuses[p.pea]?.completed && statuses[p.pea]?.team_name && <small className="measured-by">วัดโดย {statuses[p.pea].team_name}</small>}
           </article>)}
         </div>
       </aside>
       <section className="map-stage" aria-label="แผนที่หม้อแปลง"><div className="map-canvas" ref={mapElement} />
         <div className="map-filter"><select aria-label="ตำบลบนแผนที่" value={area} onChange={e => setArea(e.target.value)}><option value="all">ทุกตำบล</option>{tambons.map(t => <option key={t}>{t}</option>)}</select><PeakTimeFilter selected={selectedTimes} onChange={setSelectedTimes} area={area} context="แผนที่" /></div>
         <div className="location-controls"><button onClick={locate}><LocateFixed size={18} /><span>ตำแหน่งของฉัน</span></button><button className={follow ? "following" : ""} aria-label={follow ? "ปิดเลื่อนตามตำแหน่ง" : "เปิดเลื่อนตามตำแหน่ง"} aria-pressed={follow} onClick={toggleFollow}><Crosshair size={18} /></button></div>
+        <TeamLocations map={map.current} ready={mapReady} position={geoFix} name={teamName} onEditName={editTeam} />
         {geoMessage && <div className="geo-message" role="status">{geoMessage}</div>}
         <div className="map-legend"><span><i className={known ? "amber" : "gray"} />{known ? "ยังไม่วัด" : "ยังไม่ทราบสถานะ"}</span><span><i className="green" />วัดแล้ว</span></div>
         {!selected && <div className="map-instruction" aria-live="polite"><MapPinned size={18} /><span>{visible.length ? `แสดง ${visible.length} เครื่อง · แตะหมุดเพื่อดูข้อมูล` : "ไม่มีจุดงานตามตัวกรองที่เลือก"}</span></div>}
@@ -264,7 +291,7 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
               <p>เกณฑ์แรงดันตก: ต่ำกว่า 200 V · ค่าและพิกัดจาก GIS ณ {selectedSite.checkedAt} ไม่ใช่ผลวัดใหม่ และไม่ได้ระบุว่าเป็นช่วง Peak</p>
             </div> : <p>ยังไม่มีจุดมิเตอร์ที่ยืนยันพิกัดและเฟสสำหรับเครื่องนี้ ปุ่มนำทางด้านบนพาไปหม้อแปลงเท่านั้น</p>}
           </details>
-          <div className="detail-action">{checkBox(selected, true)}<small>{statuses[selected.pea] ? `บันทึกล่าสุด ${date(statuses[selected.pea].updated_at)}` : "ไม่ต้องกรอกข้อมูลเพิ่มเติม"}</small></div>
+          <div className="detail-action">{checkBox(selected, true)}<small>{statuses[selected.pea]?.completed && statuses[selected.pea]?.team_name ? `ทีม ${statuses[selected.pea].team_name} · ` : ""}{statuses[selected.pea] ? `บันทึกล่าสุด ${date(statuses[selected.pea].updated_at)}` : "ไม่ต้องกรอกข้อมูลเพิ่มเติม"}</small></div>
           <details><summary>ดูข้อมูลทางไฟฟ้าเพิ่มเติม</summary><dl><div><dt>โหลดเฟส PEAK</dt><dd>{fmt(selected.peakPhaseLoadPercent)}%</dd></div><div><dt>Ia / Ib / Ic ช่วง PEAK</dt><dd>{fmt(selected.peakIa)} / {fmt(selected.peakIb)} / {fmt(selected.peakIc)} A</dd></div><div><dt>% UB ช่วง PEAK</dt><dd>{fmt(selected.peakUbPercent)}%</dd></div><div><dt>วันที่รัน OPSA</dt><dd>{selected.runAt}</dd></div></dl><p>ข้อมูล OPSA ที่รวบรวม 9 พ.ย. 2569 ไม่ใช่ค่าที่วัดสดวันนี้</p></details>
         </section>}
       </section>
@@ -288,6 +315,12 @@ export default function LoadApp({ initialView = "schedule" }: { initialView?: Vi
         <div className="report-card"><h3>จัดทีมตามเวลา Peak</h3><div className="time-list">{times.map(t => { const rows = points.filter(p => p.peakTime === t); return <button key={t} onClick={() => { setSelectedTimes([t]); setArea("all"); setFilter("all"); setQuery(""); setView("list"); }}><span><Clock3 size={17} />{time(t)} น.</span><span>{rows.length} เครื่อง<ChevronRight size={16} /></span></button>; })}</div><p className="source-note">เวลาและค่า PEAK จาก OPSA ณ 9 พ.ย. 2569 ส่วนสถานะ “วัดแล้ว” เป็นผลที่ทีมติ๊กบันทึกในแอพนี้ แยกจากผลสำรวจโคมไฟเดิม</p></div></div>
       <p className="report-updated">{lastSync ? `ซิงก์สถานะล่าสุด ${date(lastSync)}` : "รอเชื่อมต่อฐานข้อมูลส่วนกลาง"}</p>
     </section>
+    {teamDialog && <div className="modal-backdrop"><section className="team-modal" role="dialog" aria-modal="true" aria-labelledby="team-title" onKeyDown={event => { if (event.key === "Escape") cancelTeam(); }}><form onSubmit={event => {
+      event.preventDefault(); const value = teamDraft.trim();
+      if (!value || value.length > 80 || /[\u0000-\u001f\u007f]/.test(value)) { setTeamError("กรุณากรอกชื่อทีมไม่เกิน 80 ตัวอักษร"); return; }
+      setTeamName(value); try { localStorage.setItem("namphong-load-team-name", value); } catch { setMessage("บันทึกชื่อทีมแล้ว แต่เบราว์เซอร์ไม่อนุญาตให้จำชื่อในเครื่องนี้"); }
+      setTeamDialog(false); const start = pendingLocate.current; pendingLocate.current = false; if (start) startLocation();
+    }}><h2 id="team-title">ชื่อทีมผู้สำรวจ</h2><label htmlFor="team-name">ชื่อทีม<input autoFocus id="team-name" aria-label="ชื่อทีมผู้สำรวจ" placeholder="เช่น ทีม 1 น้ำพอง" maxLength={80} value={teamDraft} onChange={e => setTeamDraft(e.target.value)} required /></label><p>จำชื่อทีมในเครื่องนี้ และใช้ระบุทีมที่ติ๊กวัดแล้ว</p><p>เมื่อเปิด GPS ตำแหน่งจะแสดงให้ผู้ที่เปิดเว็บนี้เห็น จุดจะหายเมื่อไม่อัปเดต 90 วินาที</p>{teamError && <p className="team-form-error" role="alert">{teamError}</p>}<div><button type="button" onClick={cancelTeam}>ยกเลิก</button><button type="submit">{pendingLocate.current ? "ยืนยันและเปิดตำแหน่ง" : "บันทึกชื่อทีม"}</button></div></form></section></div>}
     {undoPoint && <div className="modal-backdrop"><section className="undo-modal" role="alertdialog" aria-modal="true" aria-labelledby="undo-title" aria-describedby="undo-description"><h2 id="undo-title">ยกเลิกสถานะวัดแล้ว?</h2><p id="undo-description">PEA {undoPoint.pea}<br />{undoPoint.location}<br />สถานะจะกลับเป็น “ยังไม่วัด” ให้ทุกคนในทีมเห็น จุดหม้อแปลงและข้อมูลเดิมยังอยู่ครบ</p><div><button autoFocus onClick={() => setUndoPoint(null)}>เก็บสถานะเดิม</button><button className="confirm-undo" onClick={() => void toggle(undoPoint, true)}>ยืนยันยกเลิกวัดแล้ว</button></div></section></div>}
     {message && <div className="toast" role="status"><span>{message}</span><button aria-label="ปิดข้อความ" onClick={() => setMessage("")}><X size={17} /></button></div>}
     <nav className="bottom-nav" aria-label="เมนูหลัก"><button className={view === "schedule" ? "active" : ""} onClick={() => setView("schedule")}><Clock3 size={21} />เวลา Peak</button><button className={view === "map" ? "active" : ""} onClick={() => setView("map")}><MapPinned size={21} />แผนที่</button><button className={view === "list" ? "active" : ""} onClick={() => setView("list")}><List size={22} />รายการ</button><button className={view === "report" ? "active" : ""} onClick={() => setView("report")}><ClipboardList size={21} />รายงาน</button></nav>

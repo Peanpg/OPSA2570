@@ -15,30 +15,35 @@ assert.equal(contract.parseChange({id:'bad',completed:true,expectedRevision:null
 assert.equal(contract.parseChange({id:'00-065138',completed:'yes',expectedRevision:null}, ids), null);
 assert.equal(contract.parseChange({id:'00-065138',completed:true}, ids), null);
 assert.ok(contract.parseChange({id:'00-065138',completed:true,expectedRevision:null}, ids));
+assert.equal(contract.parseChange({id:'00-065138',completed:true,expectedRevision:null,teamName:7}, ids),null);
+assert.equal(contract.parseChange({id:'00-065138',completed:true,expectedRevision:null,teamName:'x'.repeat(81)}, ids),null);
 const state = new Map();
 async function fakeSql(strings, ...v) {
   const q = strings.join('?').replace(/\s+/g,' ').trim();
   if(q.startsWith('CREATE TABLE')) { assert.ok(q.includes('namphong_load_campaign_2570')); return []; }
+  if(q.startsWith('ALTER TABLE')) { assert.ok(q.includes('ADD COLUMN IF NOT EXISTS team_name')); return []; }
   if(q.startsWith('INSERT')) {
     if(state.has(v[0]))return [];
-    const row={facility_id:v[0],completed:v[1],revision:v[2],updated_at:new Date().toISOString()};state.set(v[0],row);return [row];
+    const row={facility_id:v[0],completed:v[1],revision:v[2],team_name:v[3],updated_at:new Date().toISOString()};state.set(v[0],row);return [row];
   }
   if(q.startsWith('UPDATE')) {
-    const current=state.get(v[2]);if(!current||current.revision!==v[3])return [];
-    const row={...current,completed:v[0],revision:v[1],updated_at:new Date().toISOString()};state.set(v[2],row);return [row];
+    const current=state.get(v[3]);if(!current||current.revision!==v[4])return [];
+    const row={...current,completed:v[0],revision:v[1],team_name:v[2],updated_at:new Date().toISOString()};state.set(v[3],row);return [row];
   }
   if(q.includes('WHERE facility_id'))return state.has(v[0])?[state.get(v[0])]:[];
   if(q.startsWith('SELECT'))return [...state.values()];
   throw Error('Unexpected SQL '+q);
 }
 const db = moduleFrom('db/status.ts', {'@neondatabase/serverless':{neon:()=>fakeSql}}, {DATABASE_URL:'mock-only'});
-const input={id:'00-065138',completed:true,expectedRevision:null};
+const input={id:'00-065138',completed:true,expectedRevision:null,teamName:'ทีม 1'};
 const simultaneous = await Promise.all([db.changeStatus(input), db.changeStatus(input)]);
 assert.equal(simultaneous.filter(Boolean).length,1,'Only one first insert can win');
 const saved=simultaneous.find(Boolean);
+assert.equal(saved.team_name,'ทีม 1');
 const toggles=await Promise.all([db.changeStatus({...input,completed:false,expectedRevision:saved.revision}),db.changeStatus({...input,completed:false,expectedRevision:saved.revision})]);
 assert.equal(toggles.filter(Boolean).length,1,'Only one revision update can win');
 assert.equal((await db.getStatus(input.id)).completed,0,'Undo retains a row/revision');
+assert.equal((await db.getStatus(input.id)).team_name,null,'Undo clears completed-team attribution');
 assert.equal(await db.changeStatus({...input,expectedRevision:saved.revision}),null,'Stale request cannot overwrite undo');
 const route=moduleFrom('app/api/status/route.ts', {
   'next/server':{NextResponse:{json:(value,options)=>Response.json(value,options)}},
@@ -57,5 +62,6 @@ assert.deepEqual(both.map(r=>r.status),[200,200],'Two users checking same point 
 const result=await (await route.GET()).json();
 assert.equal(result.statuses.length,1);
 assert.equal(result.statuses[0].completed,1);
+assert.equal(result.statuses[0].team_name,'ทีม 1');
 assert.equal(new Set(JSON.parse(fs.readFileSync('app/transformers.json','utf8')).map(p=>p.pea)).size,43);
 console.log('PASS: validation, same-origin checks, 43 unique points, concurrent insert/update, undo revision retention, stale-write protection, idempotent double checks, GET statuses. Database mocked; not a live Neon test.');
