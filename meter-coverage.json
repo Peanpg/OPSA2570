@@ -1,0 +1,260 @@
+[
+  {
+    "transformerPea": "00-065138",
+    "minimumMeterVoltage": 177.69,
+    "lowMeterCount": 90,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "26-008408",
+    "minimumMeterVoltage": 209.12,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "26-008586",
+    "minimumMeterVoltage": 223.03,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "28-004560",
+    "minimumMeterVoltage": 219.54,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "28-012525",
+    "minimumMeterVoltage": 217.18,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "29-005267",
+    "minimumMeterVoltage": 194.34,
+    "lowMeterCount": 7,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "30-004055",
+    "minimumMeterVoltage": 190.44,
+    "lowMeterCount": 24,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "31-002375",
+    "minimumMeterVoltage": 220.16,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "31-005516",
+    "minimumMeterVoltage": 199.63,
+    "lowMeterCount": 5,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "32-012320",
+    "minimumMeterVoltage": 199.54,
+    "lowMeterCount": 4,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "36-008399",
+    "minimumMeterVoltage": 185.74,
+    "lowMeterCount": 44,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "36-010485",
+    "minimumMeterVoltage": 219.89,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "36-011981",
+    "minimumMeterVoltage": 198.64,
+    "lowMeterCount": 10,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "41-007850",
+    "minimumMeterVoltage": 188.95,
+    "lowMeterCount": 73,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "37-007434",
+    "minimumMeterVoltage": 184.92,
+    "lowMeterCount": 104,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "37-011597",
+    "minimumMeterVoltage": 210.65,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "38-009909",
+    "minimumMeterVoltage": 191.11,
+    "lowMeterCount": 9,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "45-000979",
+    "minimumMeterVoltage": 216.65,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "45-033497",
+    "minimumMeterVoltage": 203.85,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "46-008088",
+    "minimumMeterVoltage": 179.69,
+    "lowMeterCount": 107,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "49-005586",
+    "minimumMeterVoltage": 175,
+    "lowMeterCount": 29,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "51-930105",
+    "minimumMeterVoltage": 187.1,
+    "lowMeterCount": 66,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "52-004256",
+    "minimumMeterVoltage": 201.06,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "53-007571",
+    "minimumMeterVoltage": 198.81,
+    "lowMeterCount": 5,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "54-009220",
+    "minimumMeterVoltage": 199.28,
+    "lowMeterCount": 9,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "56-001968",
+    "minimumMeterVoltage": 187.17,
+    "lowMeterCount": 133,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "57-940967",
+    "minimumMeterVoltage": 202.52,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "57-951020",
+    "minimumMeterVoltage": 197.91,
+    "lowMeterCount": 19,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "58-007688",
+    "minimumMeterVoltage": 213.35,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "59-008075",
+    "minimumMeterVoltage": 199.01,
+    "lowMeterCount": 11,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "59-016526",
+    "minimumMeterVoltage": 219.36,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "59-028625",
+    "minimumMeterVoltage": 197.19,
+    "lowMeterCount": 7,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "60-008984",
+    "minimumMeterVoltage": 213.28,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "60-014166",
+    "minimumMeterVoltage": 188.71,
+    "lowMeterCount": 59,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "60-014357",
+    "minimumMeterVoltage": 188.55,
+    "lowMeterCount": 30,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "60-025710",
+    "minimumMeterVoltage": 194.52,
+    "lowMeterCount": 22,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "60-025713",
+    "minimumMeterVoltage": 208.88,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "60-034310",
+    "minimumMeterVoltage": 218.4,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "60-037786",
+    "minimumMeterVoltage": 199.1,
+    "lowMeterCount": 8,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "66-006882",
+    "minimumMeterVoltage": 228.02,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "67-011338",
+    "minimumMeterVoltage": 233.95,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "67-029771",
+    "minimumMeterVoltage": 186.17,
+    "lowMeterCount": 39,
+    "checkedAt": "2026-11-09"
+  },
+  {
+    "transformerPea": "67-032363",
+    "minimumMeterVoltage": 214.83,
+    "lowMeterCount": 0,
+    "checkedAt": "2026-11-09"
+  }
+]
